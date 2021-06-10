@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="css/xterm.css" />
+  <!-- <link rel="stylesheet" href="node_modules/xterm/css/xterm.css" /> -->
+</head>
+
+<body>
+  <table>
+    <tr>
+      <td valign="top" width="50%">
+        <form>
+          <button id="open">Open</button>
+          <button id="close">Close</button>
+          
+        </form>
+      </td>
+      <td valign="top" width="50%">
+        <div id="output" style="max-height: 70vh;overflow-y: scroll;"></div>
+        <div id="terminal"></div>
+      </td>
+    </tr>
+  </table>
+  <script src="js/xterm.js"></script>
+  <!-- <script src="node_modules/xterm/lib/xterm.js"></script> -->
+  <script>
+    window.addEventListener("load", function (evt) {
+      var output = document.getElementById("output");
+      var input = document.getElementById("input");
+      var ws;
+      document.getElementById("open").onclick = function (evt) {
+        if (ws) {
+          return false;
+        }
+        var term = new Terminal();
+        term.open(document.getElementById('terminal'));
+
+        ws = new WebSocket("ws:\/\/127.0.0.1:8082\/echo");
+        ws.onopen = function (evt) {
+          // term.write("OPEN\n")
+        }
+        ws.onclose = function (evt) {
+          term.write("CLOSE");
+          ws = null;
+        }
+        ws.onmessage = function (evt) {
+          term.write(evt.data);
+        }
+        ws.onerror = function (evt) {
+          term.write("ERROR: " + evt.data);
+        }
+        term.onData(function(data) {
+          console.log("on", data)
+          ws.send(JSON.stringify({"type": "input", "input": data }));
+        });
+        // term.on(function(data) {
+        //   console.log("on", data)
+        //   ws.send({ "type": "input", "input": data });
+        // });
+
+        return false;
+      };
+
+      document.getElementById("close").onclick = function (evt) {
+        if (!ws) {
+          return false;
+        }
+        ws.close();
+        return false;
+      };
+    });
+  </script>
+</body>
+
+</html>
